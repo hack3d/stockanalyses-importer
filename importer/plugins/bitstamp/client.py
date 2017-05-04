@@ -12,15 +12,10 @@ class Public(object):
     '''
         Constructor
     '''
-    def __init__(self, logger):
+    def __init__(self, logger, prod_server, storage):
         self.logger = logger
 
-        # config
-        config = configparser.ConfigParser()
-        config.read('/opt/stockanalyses-importer/importer/config')
-
-        prod_server = config['prod']
-        storage = config['path']
+        self.storage = storage
 
         try:
             self.db = pymysql.connect(prod_server['servername'], prod_server['username'], prod_server['password'], prod_server['database'])
@@ -40,7 +35,7 @@ class Public(object):
     def prepareTickdata(self,file):
 
         # prepare path
-        file = '/opt/stockanalyses-downloader/data/' + file
+        file = self.storage['store_data'] + file
 
         with open(file) as data_file:
             data = json.load(data_file)

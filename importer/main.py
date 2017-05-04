@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import configparser
+import os
 import logging.handlers
 import pymysql.cursors
 import time as t
@@ -165,7 +166,7 @@ def getExchange(exchange):
 def main():
     logger.info('Start StockanalysesImporter...')
 
-    bitstamp_client = client.Public(logger)
+    bitstamp_client = client.Public(logger, prod_server, storage)
 
     while True:
         logger.debug('Get a job...')
@@ -203,6 +204,7 @@ def main():
                 if exchange == 'bitstamp':
                     bitstamp_data = bitstamp_client.prepareTickdata(job[2])
                     if bitstamp_client.addTickdata(bitstamp_data,id_base, id_quote, id_exchange):
+                        os.remove(storage['store_data']+job[2])
                         updateJob(action_tmp, '1200', job[2])
                     else:
                         # we have to send a mail
