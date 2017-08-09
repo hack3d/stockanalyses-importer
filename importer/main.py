@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import configparser
+import json
 import os
 import logging.handlers
 import pymysql.cursors
+import requests
 import time as t
 
 from importer.plugins.bitstamp import client
@@ -49,86 +51,64 @@ logger.addHandler(handler)
 '''
 def getJob():
     try:
-        db = pymysql.connect(prod_server['servername'], prod_server['username'], prod_server['password'], prod_server['database'])
+        print(prod_server['url'] + 'job/importer_jobs')
+        r = requests.get(prod_server['url'] + 'job/importer_jobs')
+        print(r.text)
 
-        # prepare cursor
-        cursor_job = db.cursor()
+        return r.json()
 
-        sql = 'select action, id_stock, filename, timestamp from import_jq where timestamp <= now() and action in (1000) ' \
-              'order by timestamp limit 1;'
-        logger.debug(sql)
-        cursor_job.execute(sql)
-
-        # check if we get a result
-        logger.debug('Number of jobs: %s' % cursor_job.rowcount)
-        if cursor_job.rowcount > 0:
-            result = cursor_job.fetchone()
-        else:
-            result = 0
-
-        return result
-
-    except pymysql.Error as e:
+    except requests.exceptions.RequestException as e:
         logger.error("Error [%s]" % (e))
 
-    finally:
-        cursor_job.close()
-        db.close()
 
 
 '''
     Update the column action for a specific job
 '''
 def updateJob(current_action, new_action, value):
+
     try:
-        db = pymysql.connect(prod_server['servername'], prod_server['username'], prod_server['password'], prod_server['database'])
+        json_data = []
+        json_data.append({'new_action': str(new_action), 'current_action': str(current_action), 'filename': str(value)})
+        print(prod_server['url'] + 'job/set_importer_jobs_state')
+        logger.debug("PUT Request to %s with data %s" % ((prod_server['url'] + 'job/set_importer_jobs_state'), json_data))
+        r = requests.put(prod_server['url'] + 'job/set_importer_jobs_state', data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
 
-        # prepare cursor
-        cursor_job = db.cursor()
+        result_text = r.text
+        result_text = result_text.encode('utf-8')
+        print(result_text)
 
-        sql = "update `import_jq` set `action`= %s, `modify_timestamp` = now(), `modify_user` = 'importer' where `action` = %s and `filename` = %s;"
-        logger.debug(sql % (new_action, current_action, value))
-        cursor_job.execute(sql,(new_action, current_action, value))
 
-        db.commit()
-
-    except pymysql.Error as e:
-        db.rollback()
-        new_action = 0
+    except requests.exceptions.RequestException as e:
         logger.error("Error [%s]" % (e))
+        new_action = 0
 
     finally:
         return new_action
-        db.close()
 
 '''
     Get id from currency
 '''
 def getCurrency(currency):
     try:
-        db = pymysql.connect(prod_server['servername'], prod_server['username'], prod_server['password'], prod_server['database'])
+        result = ''
+        print(prod_server['url'] + 'currencies/' + str(currency))
+        r = requests.get(prod_server['url'] + 'currencies/' + str(currency))
+        print(r.text)
 
-        # prepare cursor
-        cursor_cny = db.cursor()
+        rs_tmp = r.json()
 
-        sql = 'select currency_id from currency where symbol_currency = %s'
-        logger.debug(sql % (currency))
-        cursor_cny.execute(sql, currency)
-
-        if cursor_cny.rowcount > 0:
-            tmp = cursor_cny.fetchone()
-            result = tmp[0]
-        else:
+        if rs_tmp['currency_id'] == "null":
             result = 0
+        else:
+            result = rs_tmp['currency_id']
 
-    except pymysql.Error as e:
-        result = '-1'
+    except requests.exceptions.RequestException as e:
         logger.error("Error [%s]" % (e))
+        result = '-1'
 
     finally:
         return result
-        cursor_cny.close()
-        db.close()
 
 
 '''
@@ -136,29 +116,24 @@ def getCurrency(currency):
 '''
 def getExchange(exchange):
     try:
-        db = pymysql.connect(prod_server['servername'], prod_server['username'], prod_server['password'], prod_server['database'])
+        result = ''
+        print(prod_server['url'] + 'exchanges/' + str(exchange))
+        r = requests.get(prod_server['url'] + 'exchanges/' + str(exchange))
+        print(r.text)
 
-        # prepare cursor
-        cursor_ehe = db.cursor()
+        rs_tmp = r.json()
 
-        sql = 'select idexchange from exchange where exchange_symbol = %s'
-        logger.debug(sql % (exchange))
-        cursor_ehe.execute(sql, exchange)
-
-        if cursor_ehe.rowcount > 0:
-            tmp = cursor_ehe.fetchone()
-            result = tmp[0]
-        else:
+        if rs_tmp['idexchange'] == "null":
             result = 0
+        else:
+            result = rs_tmp['idexchange']
 
-    except pymysql.Error as e:
-        result = '-1'
+    except requests.exceptions.RequestException as e:
         logger.error("Error [%s]" % (e))
+        result = '-1'
 
     finally:
         return result
-        cursor_ehe.close()
-        db.close()
 
 
 '''
@@ -179,15 +154,15 @@ def main():
         quote = ''
 
 
-        if job != 0 and job[0] == 1000:
-            array = job[1].split("#")
+        if job['action'] == 1000:
+            array = job['id_stock'].split("#")
             exchange = array[0]
             base = array[1]
             quote = array[2]
 
-            logger.info('Job action: %s, base: %s, quote: %s, exchange: %s' % (job[0], base, quote, exchange))
+            logger.info('Job action: %s, base: %s, quote: %s, exchange: %s' % (job['action'], base, quote, exchange))
 
-            action_tmp = updateJob(job[0], '1100', job[2])
+            action_tmp = updateJob(job['action'], '1100', job['filename'])
             logger.info('Set action to %s' % ('1100'))
 
         else:
@@ -203,17 +178,18 @@ def main():
 
             if id_base > 0 and id_quote > 0 and id_exchange > 0:
                 if exchange == 'bitstamp':
-                    bitstamp_data = bitstamp_client.prepareTickdata(job[2])
-                    if bitstamp_client.addTickdata(bitstamp_data,id_base, id_quote, id_exchange):
-                        os.remove(storage['store_data']+job[2])
-                        updateJob(action_tmp, '1200', job[2])
+                    logger.info("We are running on exchange: %s" % exchange)
+                    bitstamp_data = bitstamp_client.prepareTickdata(job['filename'])
+                    if bitstamp_client.addTickdata(bitstamp_data, id_base, id_quote, id_exchange):
+                        os.remove(storage['store_data']+job['filename'])
+                        updateJob(action_tmp, '1200', job['filename'])
                     else:
                         # we have to send a mail
-                        updateJob(action_tmp, '1900', job[2])
+                        updateJob(action_tmp, '1900', job['filename'])
 
         if action_tmp == '0':
             # we have to send a mail
-            updateJob(action_tmp, '1900', job[2])
+            updateJob(action_tmp, '1950', job['filename'])
 
 
         t.sleep(5)

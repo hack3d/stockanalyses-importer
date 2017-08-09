@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import configparser
-import pymysql.cursors
+#import configparser
+#import pymysql.cursors
 import json
 import datetime
+import requests
+import sys
 
 
 class Public(object):
@@ -14,22 +16,8 @@ class Public(object):
     '''
     def __init__(self, logger, prod_server, storage):
         self.logger = logger
-
+        self.url = prod_server['url']
         self.storage = storage
-
-        try:
-            self.db = pymysql.connect(prod_server['servername'], prod_server['username'], prod_server['password'], prod_server['database'])
-
-        except pymysql.Error as e:
-            self.logger.error("Error [%s]" % (e))
-
-
-    '''
-        Destructor
-    '''
-    def __del__(self):
-        self.logger.info("Close database connection for bitstamp.")
-        self.db.close()
 
 
     def prepareTickdata(self,file):
@@ -48,26 +36,31 @@ class Public(object):
         return data
 
 
-    def addTickdata(self,data, base, quote, exchange):
-
+    def addTickdata(self, data, base, quote, exchange):
         try:
-            # prepare cursor
-            cursor_tick = self.db.cursor()
-
-            sql = 'insert into currency_now (base_currency, quote_currency, high,volume, latest_trade, bid, ask, currency_volume, low, exchange_idexchange, insert_timestamp, insert_user) ' \
-                  'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)'
-
-            self.logger.debug(sql % (base, quote, data['high'], data['volume'], data['datetime'], data['bid'], data['ask'], data['vwap'], data['low'], exchange, 'importer'))
-
-            cursor_tick.execute(sql, (base, quote, data['high'], data['volume'], data['datetime'], data['bid'], data['ask'], data['vwap'], data['low'], exchange, 'importer'))
-
-            self.db.commit()
-            result = True
-        except pymysql.Error as e:
-            self.db.rollback()
             result = False
-            self.logger.error("Error [%s]" % (e))
+            json_data = [{'base': str(base), 'quote': str(quote), 'exchange': str(exchange), 'high': str(data['high']),
+                          'volume': str(data['volume']), 'datetime': str(data['datetime']), 'bid': str(data['bid']),
+                          'ask': str(data['ask']), 'vwap': str(data['vwap']), 'low': str(data['low'])}]
+            print(self.url + 'currencies/addTickdata')
+            self.logger.info("POST Request to %s" % (self.url + 'currencies/addTickdata'))
+            r = requests.post(self.url + 'currencies/addTickdata', data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
+            self.logger.info('Result of POST: %s' % r.text)
+            print(r.text)
+
+            self.logger.info("StatusCode of response: %s" % r.status_code)
+
+            if r.status_code == 200:
+                result = True
+
+        except requests.exceptions.RequestException as e:
+            self.logger.error("Error [%s]" % e)
+            result = False
+
+        except:
+            e = sys.exc_info()[0]
+            self.logger.error("Error [%s]" % e)
+            result = False
 
         finally:
             return result
-            cursor_tick.close()
