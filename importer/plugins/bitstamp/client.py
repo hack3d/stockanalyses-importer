@@ -41,7 +41,7 @@ class Public(object):
             result = False
             json_data = [{'base': str(base), 'quote': str(quote), 'exchange': str(exchange), 'high': str(data['high']),
                           'volume': str(data['volume']), 'datetime': str(data['datetime']), 'bid': str(data['bid']),
-                          'ask': str(data['ask']), 'vwap': str(data['vwap']), 'low': str(data['low'])}]
+                          'ask': str(data['ask']), 'vwap': str(data['vwap']), 'low': str(data['low']), 'last': str(data['last'])}]
             print(self.url + 'currencies/addTickdata')
             self.logger.info("POST Request to %s" % (self.url + 'currencies/addTickdata'))
             r = requests.post(self.url + 'currencies/addTickdata', data=json.dumps(json_data), headers={'Content-Type': 'application/json'})

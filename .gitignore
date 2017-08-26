@@ -94,5 +94,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Stockanalyses
 importer/config
-Würde .gitignore löschen
+
+# PyCharm
+.idea/
+
