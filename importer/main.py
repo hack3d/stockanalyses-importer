@@ -5,7 +5,6 @@ import configparser
 import json
 import os
 import logging.handlers
-import pymysql.cursors
 import requests
 import time as t
 
@@ -52,7 +51,7 @@ logger.addHandler(handler)
 def getJob():
     try:
         print(prod_server['url'] + 'job/importer_jobs')
-        r = requests.get(prod_server['url'] + 'job/importer_jobs')
+        r = requests.get(prod_server['url'] + 'job/importer_jobs', auth=(prod_server['username'], prod_server['password']))
         print(r.text)
 
         return r.json()
@@ -72,7 +71,7 @@ def updateJob(current_action, new_action, value):
         json_data.append({'new_action': str(new_action), 'current_action': str(current_action), 'filename': str(value)})
         print(prod_server['url'] + 'job/set_importer_jobs_state')
         logger.debug("PUT Request to %s with data %s" % ((prod_server['url'] + 'job/set_importer_jobs_state'), json_data))
-        r = requests.put(prod_server['url'] + 'job/set_importer_jobs_state', data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
+        r = requests.put(prod_server['url'] + 'job/set_importer_jobs_state', auth=(prod_server['username'], prod_server['password']), data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
 
         result_text = r.text
         result_text = result_text.encode('utf-8')
@@ -93,7 +92,7 @@ def getCurrency(currency):
     try:
         result = ''
         print(prod_server['url'] + 'currencies/' + str(currency))
-        r = requests.get(prod_server['url'] + 'currencies/' + str(currency))
+        r = requests.get(prod_server['url'] + 'currencies/' + str(currency), auth=(prod_server['username'], prod_server['password']))
         print(r.text)
 
         rs_tmp = r.json()
@@ -118,7 +117,7 @@ def getExchange(exchange):
     try:
         result = ''
         print(prod_server['url'] + 'exchanges/' + str(exchange))
-        r = requests.get(prod_server['url'] + 'exchanges/' + str(exchange))
+        r = requests.get(prod_server['url'] + 'exchanges/' + str(exchange), auth=(prod_server['username'], prod_server['password']))
         print(r.text)
 
         rs_tmp = r.json()

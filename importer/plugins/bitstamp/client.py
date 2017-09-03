@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#import configparser
-#import pymysql.cursors
 import json
 import datetime
 import requests
@@ -17,6 +15,8 @@ class Public(object):
     def __init__(self, logger, prod_server, storage):
         self.logger = logger
         self.url = prod_server['url']
+        self.username = prod_server['username']
+        self.password = prod_server['password']
         self.storage = storage
 
 
@@ -44,7 +44,7 @@ class Public(object):
                           'ask': str(data['ask']), 'vwap': str(data['vwap']), 'low': str(data['low']), 'last': str(data['last'])}]
             print(self.url + 'currencies/addTickdata')
             self.logger.info("POST Request to %s" % (self.url + 'currencies/addTickdata'))
-            r = requests.post(self.url + 'currencies/addTickdata', data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
+            r = requests.post(self.url + 'currencies/addTickdata', auth=(self.username, self.password), data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
             self.logger.info('Result of POST: %s' % r.text)
             print(r.text)
 
