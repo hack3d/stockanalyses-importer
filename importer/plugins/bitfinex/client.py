@@ -7,7 +7,7 @@ import requests
 import sys
 
 
-class Public(object):
+class Bitfinex(object):
 
     def __init__(self, logger, prod_server):
         """
@@ -27,7 +27,7 @@ class Public(object):
         # convert unix timestamp
         data['datetime'] = datetime.datetime.fromtimestamp(int(data['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')
 
-        self.logger.debug('High: %s, Low: %s, Open: %s, Last: %s, Bid: %s, Ask: %s, volume weighted average price: %s, Volume: %s, Timestamp: %s, Datetime: %s' % (data['high'], data['low'], data['open'], data['last'], data['bid'], data['ask'], data['vwap'], data['volume'], data['timestamp'], data['datetime']))
+        self.logger.debug('High: %s, Low: %s, Last: %s, Bid: %s, Ask: %s, mid: %s, Volume: %s, Timestamp: %s, Datetime: %s' % (data['high'], data['low'], data['last_price'], data['bid'], data['ask'], data['mid'], data['volume'], data['timestamp'], data['datetime']))
 
         return data
 
@@ -41,7 +41,7 @@ class Public(object):
             result = False
             json_data = [{'high': str(data['high']), 'volume': str(data['volume']), 'datetime': str(data['datetime']),
                           'bid': str(data['bid']), 'ask': str(data['ask']), 'low': str(data['low']),
-                          'last': str(data['last']), 'isin': str(data['isin']), 'exchange': str(data['exchange'])}]
+                          'last': str(data['last_price']), 'isin': str(data['isin']), 'exchange': str(data['exchange'])}]
             print(self.url + 'currencies/addTickdata')
             self.logger.info("POST Request to %s" % (self.url + 'currencies/addTickdata'))
             r = requests.post(self.url + 'currencies/addTickdata', auth=(self.username, self.password), data=json.dumps(json_data), headers={'Content-Type': 'application/json'})
