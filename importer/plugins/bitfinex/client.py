@@ -25,7 +25,7 @@ class Bitfinex(object):
         :return: 
         """
         # convert unix timestamp
-        data['datetime'] = datetime.datetime.fromtimestamp(int(data['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')
+        data['datetime'] = datetime.datetime.fromtimestamp(float(data['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')
 
         self.logger.debug('High: %s, Low: %s, Last: %s, Bid: %s, Ask: %s, mid: %s, Volume: %s, Timestamp: %s, Datetime: %s' % (data['high'], data['low'], data['last_price'], data['bid'], data['ask'], data['mid'], data['volume'], data['timestamp'], data['datetime']))
 

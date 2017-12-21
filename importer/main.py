@@ -49,7 +49,7 @@ def callback(ch, method, properties, body):
             logger.info('RabbitMQ message acknowledged.')
         else:
             logger.warning('Bitstamp data not imported')
-            ch.basic_nack(delivery_tag=method.delivery_tag)
+            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
 
     if json_message['exchange'] == 'btfx':
         logger.info('Data for exchange bitfinex.')
@@ -62,7 +62,7 @@ def callback(ch, method, properties, body):
             logger.info('RabbitMQ message acknowledged.')
         else:
             logger.warning('Bitfinex data not imported')
-            ch.basic_nack(delivery_tag=method.delivery_tag)
+            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
 
 
 def main():
