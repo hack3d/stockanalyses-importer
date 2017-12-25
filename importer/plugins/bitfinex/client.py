@@ -3,6 +3,7 @@
 
 import json
 import datetime
+import pytz
 import requests
 import sys
 
@@ -24,8 +25,10 @@ class Bitfinex(object):
         :param data: 
         :return: 
         """
-        # convert unix timestamp
-        data['datetime'] = datetime.datetime.fromtimestamp(float(data['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')
+        # convert unix timestamp to utc time
+        local_tz = pytz.timezone("UTC")
+        data['datetime'] = local_tz.localize(datetime.datetime.utcfromtimestamp(float(data['timestamp']))).strftime(
+            '%Y-%m-%d %H:%M:%S')
 
         self.logger.debug('High: %s, Low: %s, Last: %s, Bid: %s, Ask: %s, mid: %s, Volume: %s, Timestamp: %s, Datetime: %s' % (data['high'], data['low'], data['last_price'], data['bid'], data['ask'], data['mid'], data['volume'], data['timestamp'], data['datetime']))
 

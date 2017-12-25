@@ -3,6 +3,7 @@
 
 import json
 import datetime
+import pytz
 import requests
 import sys
 
@@ -24,10 +25,12 @@ class Public(object):
         :param data: 
         :return: 
         """
-        # convert unix timestamp
-        data['datetime'] = datetime.datetime.fromtimestamp(int(data['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')
+        # convert unix timestamp to utc time
+        local_tz = pytz.timezone("UTC")
+        data['datetime'] = local_tz.localize(datetime.datetime.utcfromtimestamp(int(data['timestamp']))).strftime(
+            '%Y-%m-%d %H:%M:%S')
 
-        self.logger.debug('High: %s, Low: %s, Open: %s, Last: %s, Bid: %s, Ask: %s, volume weighted average price: %s, Volume: %s, Timestamp: %s, Datetime: %s' % (data['high'], data['low'], data['open'], data['last'], data['bid'], data['ask'], data['vwap'], data['volume'], data['timestamp'], data['datetime']))
+        self.logger.debug('High: %s, Low: %s, Open: %s, Last: %s, Bid: %s, Ask: %s, volume weighted average price: %s, Volume: %s, Timestamp: %s, UTC-Datetime: %s' % (data['high'], data['low'], data['open'], data['last'], data['bid'], data['ask'], data['vwap'], data['volume'], data['timestamp'], data['datetime']))
 
         return data
 

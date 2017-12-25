@@ -7,8 +7,8 @@ import os
 import logging.handlers
 import pika
 
-from importer.plugins.bitstamp import client
-from importer.plugins.bitfinex.client import Bitfinex
+from plugins.bitstamp import client
+from plugins.bitfinex.client import Bitfinex
 
 # config
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -73,13 +73,6 @@ def main():
     logger.info('Start Stockanalyses-Importer...')
 
     while True:
-        logger.debug('Get a job...')
-        action_tmp = '-1'
-        status = False
-        exchange = ''
-        base = ''
-        quote = ''
-
         try:
             credentials = pika.PlainCredentials(prod_server['rabbitmq_username'], prod_server['rabbitmq_password'])
             connection = pika.BlockingConnection(pika.ConnectionParameters(prod_server['rabbitmq_host'], 5672, '/',
