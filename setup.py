@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='stockanalyses-importer',
-	version='0.1.0',
+	version='0.1.1',
 	description='Import bitcoin and stock data.',
 	url='http://stockdashboard.de',
 	author='Raphael Lekies',
