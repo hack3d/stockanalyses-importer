@@ -6,7 +6,12 @@ rabbitmq_host=localhost
 rabbitmq_username=guest
 rabbitmq_password=guest
 rabbitmq_queue=test
+log_level=INFO
 
 [path]
 store_data=/opt/stockanalyses-data/
 storage_logs=/opt/stockanalyses-logs/
+# Value is in bytes
+logs_max_size=11000000
+logs_rotated_files=5
+logs_filename=Importer.log

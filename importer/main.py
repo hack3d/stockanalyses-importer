@@ -21,12 +21,47 @@ storage = config['path']
 ##########
 # Logger
 ##########
-LOG_FILENAME = storage['storage_logs'] + 'Importer.log'
+# default logging
+log_level = logging.INFO
+if storage['logs_filename'] == "":
+    logs_filename = 'Importer.log'
+else:
+    logs_filename = storage['logs_filename']
+
+if storage['logs_max_size'] == "":
+    logs_max_size = 11000000
+else:
+    logs_max_size = storage['logs_max_size']
+
+if storage['logs_rotated_files'] == "":
+    logs_rotated_files = 5
+else:
+    logs_rotated_files = storage['logs_rotated_files']
+
+# log level
+if prod_server['log_level'] == 'DEBUG':
+    log_level = logging.DEBUG
+
+if prod_server['log_level'] == 'INFO':
+    log_level = logging.INFO
+
+if prod_server['log_level'] == 'WARNING':
+    log_level = logging.WARNING
+
+if prod_server['log_level'] == 'ERROR':
+    log_level = logging.ERROR
+
+if prod_server['log_level'] == 'CRITICAL':
+    log_level = logging.CRITICAL
+
+
+LOG_FILENAME = storage['storage_logs'] + logs_filename
 # create a logger with the custom name
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG,
+logging.basicConfig(filename=LOG_FILENAME, level=log_level,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("stockanalyses.Importer")
-handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=11000000, backupCount=5)
+handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=int(logs_max_size),
+                                               backupCount=int(logs_rotated_files))
 logger.addHandler(handler)
 
 
