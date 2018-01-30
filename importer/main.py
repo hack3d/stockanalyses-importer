@@ -6,6 +6,7 @@ import json
 import os
 import logging.handlers
 import pika
+import requests
 
 from plugins.bitstamp import client
 from plugins.bitfinex.client import Bitfinex
@@ -17,6 +18,12 @@ config.read(dir_path + '/config')
 
 prod_server = config['prod']
 storage = config['path']
+
+# Default handling
+if prod_server['database_version'] == "":
+    database_version = 1
+else:
+    database_version = prod_server['database_version']
 
 ##########
 # Logger
@@ -54,7 +61,6 @@ if prod_server['log_level'] == 'ERROR':
 if prod_server['log_level'] == 'CRITICAL':
     log_level = logging.CRITICAL
 
-
 LOG_FILENAME = storage['storage_logs'] + logs_filename
 # create a logger with the custom name
 logging.basicConfig(filename=LOG_FILENAME, level=log_level,
@@ -63,6 +69,19 @@ logger = logging.getLogger("stockanalyses.Importer")
 handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=int(logs_max_size),
                                                backupCount=int(logs_rotated_files))
 logger.addHandler(handler)
+
+
+def getDatabaseVersion():
+    try:
+        print(prod_server['url'] + 'dbversion')
+        logger.info("URL for database version: %s", prod_server['url'] + 'dbversion')
+        r = requests.get(prod_server['url'] + 'dbversion', auth=(prod_server['username'], prod_server['password']))
+        print(r.text)
+        logger.debug('Result database version: %s', r.text)
+
+        return r.json()
+    except requests.exceptions.RequestException as e:
+        logger.error('Error [%s]', e)
 
 
 def callback(ch, method, properties, body):
@@ -106,30 +125,36 @@ def main():
     :return: 
     """
     logger.info('Start Stockanalyses-Importer...')
+    logger.info('Default database version in config: %s' % database_version)
 
-    while True:
-        try:
-            credentials = pika.PlainCredentials(prod_server['rabbitmq_username'], prod_server['rabbitmq_password'])
-            connection = pika.BlockingConnection(pika.ConnectionParameters(prod_server['rabbitmq_host'], 5672, '/',
-                                                                           credentials))
+    # we will check if the application can handle the database schema.
+    dbversion_data = getDatabaseVersion()
+    if dbversion_data['versions'][0]['version_number'] >= int(database_version):
+        while True:
+            try:
+                credentials = pika.PlainCredentials(prod_server['rabbitmq_username'], prod_server['rabbitmq_password'])
+                connection = pika.BlockingConnection(pika.ConnectionParameters(prod_server['rabbitmq_host'], 5672, '/',
+                                                                               credentials))
 
-            channel = connection.channel()
-            channel.queue_declare(queue=prod_server['rabbitmq_queue'], durable=True)
+                channel = connection.channel()
+                channel.queue_declare(queue=prod_server['rabbitmq_queue'], durable=True)
 
-            logger.info('Connect to queue %s' % (prod_server['rabbitmq_queue']))
+                logger.info('Connect to queue %s' % (prod_server['rabbitmq_queue']))
 
-            # set up subscription on the queue
-            channel.basic_consume(callback, queue=prod_server['rabbitmq_queue'], no_ack=False)
+                # set up subscription on the queue
+                channel.basic_consume(callback, queue=prod_server['rabbitmq_queue'], no_ack=False)
 
-            # start consuming (blocks)
-            channel.start_consuming()
+                # start consuming (blocks)
+                channel.start_consuming()
 
-        except Exception:
-            logger.warning('%s cannot connect', str(prod_server['rabbitmq_producer']), exc_info=True)
+            except Exception:
+                logger.warning('%s cannot connect', str(prod_server['rabbitmq_producer']), exc_info=True)
 
-        finally:
-            connection.close()
-
+            finally:
+                connection.close()
+    else:
+        logger.warning("Database version is to low. database: %s, config: %s",
+                       dbversion_data['versions'][0]['version_number'], database_version)
 
 if __name__ == '__main__':
     main()
