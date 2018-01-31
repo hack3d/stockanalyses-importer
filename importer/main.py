@@ -20,10 +20,9 @@ prod_server = config['prod']
 storage = config['path']
 
 # Default handling
-if prod_server['database_version'] == "":
-    database_version = 1
-else:
-    database_version = prod_server['database_version']
+# Minimum database version this application can handle
+database_version = 1
+
 
 ##########
 # Logger
@@ -125,7 +124,7 @@ def main():
     :return: 
     """
     logger.info('Start Stockanalyses-Importer...')
-    logger.info('Default database version in config: %s' % database_version)
+    logger.info('Minimum database version: %s' % database_version)
 
     # we will check if the application can handle the database schema.
     dbversion_data = getDatabaseVersion()
